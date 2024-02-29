@@ -2,25 +2,164 @@ const state={
     score:{
         playerScore: 0,
         computerScore: 0,
-        scoreBox: document.getElementById("score_point"),
+        scoreBox: document.getElementById("score_points"),
 
     },
     cardsSprites:{
-        avatar:document.getElementById('card-image'),
-        name:document.getElementById('card-name'),
-        type:document.getElementById('card-type'),
+        avatar:document.getElementById("card-image"),
+        name:document.getElementById("card-name"),
+        type:document.getElementById("card-type"),
     },
     fieldCards:{
-        player: document.getElementById('player-field-card'),
-        computer: document.getElementById('computer-field-card')
+        player: document.getElementById("player-field-card"),
+        computer: document.getElementById("computer-field-card")
     },
     actions: {
-        button: document.getElementById('next-duel'),
+        button: document.getElementById("next-duel"),
+    },
+   playerSides: {
+        player1: "player-cards",
+        player1Box:document.querySelector("#player-cards"),
+        computer: "computer-cards",
+        computerBox: document.querySelector("#computer-cards"),
     },
 };
 
+const pathImg = "./src/assets/icons/";
+
+const cardData = [
+    {   id: 0,
+        name: "Blue Eyes White Dragon",
+        type: "Paper",
+        img: `${pathImg}dragon.png`,
+        winOf: [1],
+        loseOf: [2],
+    },
+
+    {   id: 1,
+        name: "Dark Magician",
+        type: "Rock",
+        img: `${pathImg}magician.png`,
+        winOf: [2],
+        loseOf: [0],
+    },
+    {   id: 2,
+        name: "Exodia",
+        type: "Scissors",
+        img: `${pathImg}exodia.png`,
+        winOf: [0],
+        loseOf: [1],
+    }
+]
+
+async function getRandonCardId(){
+    const randonIndex = Math.floor(Math.random()*cardData.length);
+    return cardData[randonIndex].id;
+};
+
+async function createCardImage(idCard, fieldSide){
+    const cardImage = document.createElement("img");
+    cardImage.setAttribute("height", "90px");
+    cardImage.setAttribute("src", "./src/assets/icons/card-back.png");
+    cardImage.setAttribute("data-id", idCard);
+    cardImage.classList.add("card");
+
+    if(fieldSide === state.playerSides.player1){
+        cardImage.addEventListener("mouseover",()=>{
+            drawSelectCard(idCard);
+        });
+
+        cardImage.addEventListener("click",()=>{
+            setCardsFiel(cardImage.getAttribute("data-id"));
+        });
+    } else if(fieldSide === state.playerSides.computer){
+        cardImage.classList.remove("card");
+    };
+    return cardImage;
+};
+
+async function removeAllCardsImages(){
+    let {computerBox, player1Box} = state.playerSides;
+
+    let imgElements = computerBox.querySelectorAll("img");
+    imgElements.forEach((img) => img.remove());
+
+    imgElements = player1Box.querySelectorAll("img");
+    imgElements.forEach((img) => img.remove());
+};
+
+async function setCardsFiel(cardId){
+    await removeAllCardsImages();
+
+    let computerCardId = await getRandonCardId();
+
+    state.fieldCards.player.style.display = "block";
+    state.fieldCards.computer.style.display = "block";
+
+    state.fieldCards.player.src = cardData[cardId].img;
+    state.fieldCards.computer.src = cardData[computerCardId].img;
+
+    let duelResults = await checkDuelResults(cardId, computerCardId);
+
+    await drawButton(duelResults);
+    await updateScore();
+}
+
+async function drawButton(text){
+    state.actions.button.innerText = text;
+    state.actions.button.style.display =  "block";
+};
+
+async function updateScore(){
+    state.score.scoreBox.innerText=`Win: ${state.score.playerScore} | Lose: ${state.score.computerScore}`;
+};
+
+async function checkDuelResults(playerCardId, computerCardId){
+    let duelResults = "Empate";
+    let playerCard = cardData[playerCardId];
+
+    if(playerCard.winOf.includes(computerCardId)){
+        duelResults = "Ganhou";
+        state.score.playerScore++;
+    }
+    if(playerCard.loseOf.includes(computerCardId)){
+        duelResults = "Perdeu";
+        state.score.computerScore++;
+    }
+
+    return duelResults;
+};
+
+async function drawCards(cardNumbers, fieldSide) {
+    for (let i = 0; i < cardNumbers; i++) {
+        const randomIdCard = await getRandonCardId();
+        const cardImage = await createCardImage(randomIdCard, fieldSide);
+
+        document.getElementById(fieldSide).appendChild(cardImage);
+    }
+};
+
+async function drawSelectCard(index){
+    state.cardsSprites.avatar.src = cardData[index].img;
+    state.cardsSprites.name.innerText = cardData[index].name;
+    state.cardsSprites.type.innerText= "Atribute: " + cardData[index].type;
+
+};
+
+async function resetDuel(){
+    state.cardsSprites.avatar.src="";
+    state.actions.button.style.display = "none";
+
+    state.fieldCards.player.style.display = "none";
+    state.fieldCards.computer.style.display = "none";
+
+    init();
+
+}
+
 function init(){
-    
+    drawCards(5, state.playerSides.player1);
+    drawCards(5, state.playerSides.computer);   
 };
 
 init();
